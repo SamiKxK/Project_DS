@@ -1,0 +1,218 @@
+---
+title: <span style="color:green">Analiza asupra Autovehiculelor Electrice</span>
+author: <span style="color:midnightblue">Kutkut Sami, Luca Andreea Giorgiana, Mertic Yulyssa Nicoleta Ioana</span>
+date: <span style="color:midnightblue">22/01/2022</span>
+output:
+  html_document:
+    pandoc_args: --lua-filter=color-text.lua
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+      number_sections: yes
+      theme: flatly
+      highlight: tango
+  word_document:
+    toc: yes
+  pdf_document:
+    toc: yes
+---
+
+## [I. Prezentarea Domeniului]{color="green"}
+
+Prezenta analiză se concentrează pe observarea caracteristicilor autovehiculelor electrice dintr-un set de date preluat de pe site-ul Kaggel: <https://www.kaggle.com/code/prateekmaj21/electric-cars-data-analysis/data>\
+În acest sens se dorește observarea diferențelor, asemănărilor si performanțelor setului înregistrat din punct de vedere al capacității bateriei, consumului de electricitate, distanța ce poate fi parcursă, viteza, preț si desigur a altor caracteristici.
+
+## [II. Obiective]{color="green"}
+
+Scopul analizei are ca obiectiv determinarea performanțelor principale ale mașinilor electrice utilizând metoda anlizei componentelor principale.\
+[In general, alegerea unui autovehicul este influentat de caracteristicile acestuia, prin urmare am ales sa realizam arbori de decizie si de clasificare cu ajutorul carora s-a putut contura o viziune mai clara asupra gruparilor obtinute.]{color="midnightblue"}\
+[De asemenea, am realizat o clasificare supervizata pentru numarul de viteze prin algoritmul specific machine-learning, KNN.]{color="midnightblue"}
+
+## [III. Literatură de specialitate]{color="green"}
+
+Vehiculele electrice (EV) reprezintă o tehnologie promițătoare pentru realizarea unui sector de transport durabil în viitor, datorită emisiilor de carbon foarte scăzute până la zero, zgomotului redus, eficienței ridicate și flexibilității în funcționarea și integrarea în rețea. Acest capitol include o prezentare generală a tehnologiilor vehiculelor electrice, precum și a sistemelor asociate de stocare a energiei și a mecanismelor de încărcare. Sunt prezentate diferite tipuri de vehicule cu propulsie electrică.
+
+-   \" Nanaki, Evanthia A. (2021). Electric Vehicles for Smart Cities \|\| Electric vehicles. , (), 13--49. doi:10.1016/B978-0-12-815801-2.00006-X \" <https://www.sciencedirect.com/science/article/pii/B978012815801200006X>
+
+-   \"Kittner, Noah (2020). *Technological Learning in the Transition to a Low-Carbon Energy System \|\| Electric vehicles. , (), 145--163.* doi:10.1016/B978-0-12-818762-3.00009-1 \" \
+    <https://www.sciencedirect.com/science/article/pii/B9780128187623000091>
+
+## [IV. Baza de date]{color="green"}
+
+```{r message=FALSE, echo=FALSE, warning = FALSE}
+library(readxl)
+Cars <- read_excel("D:/Desktop/ASE/Master/Data Science/Proiect/Date_Elec_Vehic.xlsx")
+#View(Cars)
+Cars
+
+```
+
+-   **Useable Capacity: kWh\
+    **Capacitate utilizabilă sau „kilowați-oră (kWh) disponibile" reprezintă de obicei 95%-99% din capacitatea totală disponibilă. De exemplu, o baterie care poate ține fizic un total de 65 kWh poate pune la dispoziție numai 62 kWh pentru mașină.
+
+-   **Acceleration(sec)\
+    **Acest indicator se referă la timpul necesar pentru a ajunge la 100 km/h. Timpul este exprimat în secunde.
+
+-   **TopSpeed(km/h)\
+    **Viteza maximă la care poate ajunge mașina.
+
+-   **Range(km)\
+    **Cât poate parcurge mașina cu un plin al bateriei.
+
+-   **Efficiency(Wh/km)** Eficiența este măsurată în wați-oră pe km, sau mai frecvent scrisă ca wh/km. Aceasta înseamnă că pentru fiecare kilometru parcurs, vehiculul dumneavoastră electric va consuma, în medie, xx wați oră din acumulator.
+
+-   **FastChargeSpeed(km/h)\
+    **Măsoară câți km poate parcurge mașina cu o oră de încărcare în modul FastCharge.
+
+-   **NumberofSeats\
+    **Numărul de locuri disponibil în mașină.
+
+-   **PriceinEuro\
+    **Prețul în euro. **\
+    **
+
+## [V. Analiza Descriptivă]{color="green"}
+
+[Pentru a analiza setul de date, am verificat existenta outlierilor.]{color="midnightblue"} [In acest sens, boxploturile de mai jos au evidentiat ca exista un numar mic de outlieri, neseminifcativi pentru atingerea obiectiviului analize]{color="midnightblue"}.
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+cars1<-data.frame(Cars[,-1])
+#cars1
+par(mfrow=c(2,4))
+boxplot(cars1$Useable.Capacity..kWh, main="Useable.Capacity..kWh", col="blue")#Are un(1) outlier
+boxplot(cars1$Acceleration.sec., main="Acceleration.sec.", col="green") #Nu are outlieri
+boxplot(cars1$TopSpeed.km.h., main="TopSpeed.km.h.", col="red") #Are 2 outlieri
+boxplot(cars1$Range.km., main="Range.km.", col="black") #Are 5 outlieri
+boxplot(cars1$Efficiency.Wh.km., main="Efficiency.Wh.km.", col="yellow") #Nu are outlieri
+boxplot(cars1$FastChargeSpeed.km.h., main="FastChargeSpeed.km.h.", col="green") #Are 3-4outlieri
+boxplot(cars1$NumberofSeats, main="NumberofSeats", col="pink") #Are 2 outlieri
+boxplot(cars1$PriceinEuro, main="PriceinEuro", col="orange") #Are multi outlieri
+```
+
+```{r}
+par(mfrow=c(2,4))
+hist(cars1$Useable.Capacity..kWh, main="Useable.Capacity..kWh")
+hist(cars1$Acceleration.sec., main="Acceleration.sec.")
+hist(cars1$TopSpeed.km.h., main="TopSpeed.km.h.")
+hist(cars1$Range.km., main="Range.km.")
+hist(cars1$Efficiency.Wh.km., main="Efficiency.Wh.km.")
+hist(cars1$FastChargeSpeed.km.h., main="FastChargeSpeed.km.h.")
+hist(cars1$NumberofSeats, main="NumberofSeats")
+hist(cars1$PriceinEuro, main="PriceinEuro")
+```
+
+```{r}
+library(psych)
+describe(cars1)
+```
+
+Observăm histogramele variabilelor, putem spune că predomină distribuțiile **leptocurtice,** însă aplicând funcția "describe" obtinem valorile pentru skewness si kurtosis care ne arată precis ce tipuri de distribuție avem. Dacă coeficientul de boltire este mai mic decât 3 (\<3) avem distribuții platicurtice, în caz contrar leptocurtice ( \>3).\
+În cazul nostru, distribuții platicurtice avem pentru variabilele: Acceleration(sec), Efficiency.Wh.km., FastCharge, NumberofSeats.\
+Indicele de asimetrie pozitiv, ne arată că majoritatea datelor sunt distibuite spre stânga, ceea ce înseamna că predomină valorile mici.
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+cars2<-cars1[,1:8]
+#cars2
+library(PerformanceAnalytics)
+library(xts)
+library(zoo)
+windows()
+suppressWarnings(chart.Correlation(cars1, histogram=T, pch=19))
+```
+
+Prin pachetul PerformanceAnalytics am generat graficul din figura de mai sus.\
+Pe diagonala principală putem observa histogramele pentru fiecare variabilă. Deasupra diagonalei principale regăsim valoarea corelațiilor si totodată nivelul de semnificație al indicatorilor. Fiecare nivel de semnificație are asociat un simbol format din una sau mai multe steluțe. În cazul setului nostru de date, predomină simbolul cu trei stelute, ceea ce înseamnă o valoare a lui P-value de 0.001.\
+Sub diagonala principală regăsim legăturile dintre variabilele reprezentate prin grafice de tip plot. Cu ajutorul lor putem analiza legătura dintre fiecare două componente și modul în care sunt distribuite datele de-a lungul bisectoarei care ne dă sensul legăturii.
+
+Spre exemplu, [unul dintre ploturile importante regăsite în acest grafic este cel ce face referire la corelația dintre variabilele Useable Capacity: kWh și Range(km)]{color="midnightblue"}, unde putem observa un coeficient de corelație de 0.88, fiind o corelație directă și puternică deoarce tinde spre 1.
+
+## [VI. Analiza Componentelor Principale]{color="green"}
+
+Pentru a aplica analiza componentelor principale am standardizat datele si am analizat matricea de corelatie pentru a vedea legaturile dintre variabile. Pentru extragerea componentelor principale am utilizat functia princomp pentru datele standardizate si am obtinut urmatorul output:
+
+```{r}
+cars2<-data.frame(cars1[,1:8])
+#View(cars2)
+date_st<-scale(cars2,scale=T)
+#date_st
+PCA<-princomp(date_st,cor = T)
+sdev<-PCA$sdev
+valp<-sdev*sdev  
+procent_info<-valp*100/ 8 
+procent_cumulat<-cumsum(procent_info)
+X<-round(data.frame(sdev,valp,procent_info,procent_cumulat),3)
+X
+```
+
+În ceea ce privește prima componentă, abaterea standard a acesteia are cea mai mare valoare dintre cele opt componente identificate, de 2.142. Procentul de informație preluat de aceasta este de 57.333%. De asemenea, în ceea ce privește procentul cumulat de primele două componente este de 80.254%
+
+Pentru a determina numărul de componente principale am urmat 3 criterii de determinare:
+
+-   **Criteriul lui Kaiser**, conform căruia se iau în calcul doar numărul de componente principale care au varianta mai mare sau egală cu 1.
+
+-   **Criteriul procentului de acoperire** prin care numărul optim de componente este cel care are un procent cumulat mai mare de 80%.
+
+-   **Criteriul pantei** prin care se realizează un grafic cu o tăietura după o dreaptă paralelă cu ordonata, astfel încat la dreaptă tăieturii să ramană o porțiune de grafic unde panta este aproape zero.
+
+**Conform celor trei criterii, în analiza trebuie urmărite două componente principale.**
+
+```{r}
+scree_plot<-prcomp(date_st)
+plot(scree_plot, type="l", main="Screen Plot") 
+abline(v=2.8, lwd=1.5, col="red")
+abline(h=0.8, lwd=1.5, col="red")
+
+```
+
+[Vom denumi prima componenta]{color="midnightblue"} [**Performanță**]{color="midnightblue"} [-- aceasta fiind formata din variabilele Useable Capacity, Acceleration, TopSpeed, Range, FastCharge, PriceinEuro.]{color="midnightblue"}\
+\
+[Cea de-a doua componenta se va numi]{color="midnightblue"} [**Diverse**-- aceasta fiind formata din variabilele Efficiency și NumberOfSeats.]{color="midnightblue"}
+
+```{r}
+c<-PCA$scores[,1:2]
+
+round(cor(c),3)
+mat_factor<-cor(date_st,c)
+round(mat_factor,3)
+library(corrplot)
+corrplot(mat_factor,method="square")
+```
+
+```{r}
+library(factoextra)
+library(ggplot2)
+
+fviz_pca_var(PCA, col.var="contrib",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE # Avoid text overlapping
+)
+```
+
+Cercul din figura de mai sus ne arată cât de mult au contribuit variabilele analizate la realizarea componentelor principale, unde prima axa este data de prima component principal(Performanță), iar cea de-a doua axă este dată de a doua componentă principală(Diverse). Observăm ca unghiul dintre variabila Efficiency și prima component este foarte ascuțit, ceea ce ne indică un coeficient de corelație cu valoare mare.
+
+## [VII. Arbori de clasificare]{color="green"}
+
+[Arborele de clasificare de mai jos este determinat prin utilizarea librariei "party" pentru o mai buna organizare a datelor și a codului. Au fost implicate in acesta variabilele "Useable Capacity" și "PriceinEuro".] [Se observă ca pentru masinile a căror preț este mai mica sau egal cu 35650 euro, capacitatea utilizabiă preponderentă este 40, identificate la 40% dintre masinile analizate si 45 capacitatea utilizabiă , indentificate la 25% dintre mașini. In ceea ce priveste un preț mai mare de 35650 euro, capacitatea utilizabiă preponderentă este de 45, identificată la 20% dintre mașini, in timp ce putin peste 15% variază între 68 și 81.]
+
+```{r}
+set.seed(42)
+n     <- nrow(Cars)
+train <- Cars[sample(n, n/4), ]
+
+library(dplyr)
+train <- sample_n(Cars, n / 4)
+
+#View(train)
+
+
+library(party)
+ct <- ctree(factor(train$`Useable Capacity: kWh`) ~ train$PriceinEuro, data = train, controls = ctree_control(minsplit = 3))
+plot(ct, main = "Conditional Inference Tree")
+```
+
+## [VIII. Concluzii]{color="green"}
+
+În concluzie, în urma analizelor realizate pentru setul de date ales, s-au conturat pricipalele caracteristici ale automobilelor electrice și s-a determinat eficiența mașinilor. În acest sens am determinat 2 componente principale, acestea au fost denumite componenta "Performanță", fiind formata din variabilele [Useable Capacity, Acceleration, TopSpeed, Range, FastCharge, PriceinEuro]{color="midnightblue"} și componenta "Diverse", formată din variabilele [Efficiency și NumberOfSeats.]{color="midnightblue"}
+
+Un alt fir analitic urmarit tine de arborii de clasificare, în acest subcapitol s-a observat că pentru mașinile a căror preț este mai mica sau egal cu 35650 euro, capacitatea utilizabiă preponderentă este 40, identificate la 40% dintre masinile analizate si 45 capacitatea utilizabiă , indentificate la 25% dintre mașini. In ceea ce priveste un preț mai mare de 35650 euro, capacitatea utilizabiă preponderentă este de 45, identificată la 20% dintre mașini, in timp ce putin peste 15% variază între 68 și 81.
